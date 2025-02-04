@@ -1,0 +1,49 @@
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:16.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "prod"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d promocodedatabase -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - postgresql_bd_net
+
+  redis:
+    container_name: redis
+    image: redis:7.4
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+
+  backend:
+    container_name: backend
+    build:
+      context: ../test-2025-python-Sarch-Zity/solution/
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    networks:
+      - postgresql_bd_net
+  antifraud:
+    container_name: antifraud
+    image: lodthe/prod-backend-antifraud:latest
+    environment:
+      SERVER_PORT: 9090
+      CACHE_DURATION_MS: 20000
+      
+    ports:
+      - "9090:9090"
+networks:
+  postgresql_bd_net:
+    driver: bridge
